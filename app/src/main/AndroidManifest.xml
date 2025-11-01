@@ -24,14 +24,6 @@
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
-        <activity
-            android:name=".ConversionActivity"
-            android:exported="false"
-            android:parentActivityName=".HomeActivity" />
-        <activity
-            android:name=".CalculatorActivity"
-            android:exported="false"
-            android:parentActivityName=".HomeActivity" />
     </application>
 
 </manifest>
