@@ -31,7 +31,7 @@ public class HomeActivity extends AppCompatActivity {
         viewPager.setAdapter(adapter);
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            switch (position) {
+            switch(position){
                 case 0:
                     tab.setText("Converter");
                     break;

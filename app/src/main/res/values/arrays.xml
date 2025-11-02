@@ -5,6 +5,7 @@
         <item>Binary</item>
         <item>Hexadecimal</item>
         <item>Octal</item>
+        <item>IEEE 754</item>
     </string-array>
 
     <string-array name="operation_options">

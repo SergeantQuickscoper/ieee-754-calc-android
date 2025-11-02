@@ -1,6 +1,18 @@
 package com.donchacko.ieee754calc;
 
 public class NumberConverter {
+
+    private static final long MAX_INT_32 = Integer.MAX_VALUE;
+    private static final long MIN_INT_32 = Integer.MIN_VALUE;
+    
+    private static boolean isWithinInt32Range(long value) {
+        return value >= MIN_INT_32 && value <= MAX_INT_32;
+    }
+    
+    private static boolean isWithinInt32Range(double value) {
+        return value >= MIN_INT_32 && value <= MAX_INT_32 && 
+               value == (long) value; 
+    }
     public static boolean isValidDecimal(String decimal){
         if (decimal == null || decimal.trim().isEmpty()) return false;
         try{
@@ -37,6 +49,17 @@ public class NumberConverter {
         
         return true;
     }
+
+    public static boolean isValidTwosComplement(String twosComp){
+        if (twosComp == null || twosComp.trim().isEmpty()) return false;
+        twosComp = twosComp.trim().replaceAll("\\s", "");
+        if (twosComp.length() == 0 || twosComp.length() > 32) return false;
+        for(int i = 0; i < twosComp.length(); i++){
+            char c = twosComp.charAt(i);
+            if (c != '0' && c != '1') return false;
+        }
+        return true;
+    }
     
     public static boolean isValidHex(String hex){
         if (hex == null || hex.trim().isEmpty()) return false;
@@ -51,12 +74,12 @@ public class NumberConverter {
         
         if (intPart.isEmpty() && fracPart.isEmpty()) return false;
         
-        for (int i = 0; i < intPart.length(); i++) {
+        for (int i = 0; i < intPart.length(); i++){
             char c = intPart.charAt(i);
             if (!Character.isDigit(c) && (c < 'A' || c > 'F')) return false;
         }
         
-        for (int i = 0; i < fracPart.length(); i++) {
+        for (int i = 0; i < fracPart.length(); i++){
             char c = fracPart.charAt(i);
             if (!Character.isDigit(c) && (c < 'A' || c > 'F')) return false;
         }
@@ -90,7 +113,7 @@ public class NumberConverter {
         return true;
     }
     
-    public static boolean isValidIEEE754(String ieee754) {
+    public static boolean isValidIEEE754(String ieee754){
         if (ieee754 == null || ieee754.trim().isEmpty()) return false;
         ieee754 = ieee754.trim().replaceAll("\\s", "");
         if (ieee754.length() > 32) return false;
@@ -147,13 +170,22 @@ public class NumberConverter {
             String fracPart = dotIndex >= 0 ? binary.substring(dotIndex + 1) : "";
 
             long intValue = 0;
+            long maxValueBeforeNeg = isNegative ? -MIN_INT_32 : MAX_INT_32;
             for(int i = 0; i < intPart.length(); i++){
                 char c = intPart.charAt(i);
                 if (c == '1') {
-                    intValue += Math.pow(2, intPart.length() - 1 - i);
+                    long power = (long) Math.pow(2, intPart.length() - 1 - i);
+
+                    if (intValue > maxValueBeforeNeg - power) {
+                        return "Error";
+                    }
+                    intValue += power;
                 } else if (c != '0') {
                     return "Error";
                 }
+            }
+            if (!isWithinInt32Range(isNegative ? -intValue : intValue)) {
+                return "Error";
             }
 
             double fracValue = 0;
@@ -253,12 +285,20 @@ public class NumberConverter {
             String intPart = dotIndex >= 0 ? hex.substring(0, dotIndex) : hex;
             String fracPart = dotIndex >= 0 ? hex.substring(dotIndex + 1) : "";
             long intValue = 0;
+            long maxValueBeforeNeg = isNegative ? -MIN_INT_32 : MAX_INT_32;
             for(int i = 0; i < intPart.length(); i++){
                 char c = intPart.charAt(i);
                 int digit = Character.digit(c, 16);
                 if(digit == -1) return "Error";
+                if (intValue > (maxValueBeforeNeg - digit) / 16) {
+                    return "Error";
+                }
                 intValue = intValue * 16 + digit;
             }
+            if (!isWithinInt32Range(isNegative ? -intValue : intValue)) {
+                return "Error";
+            }
+            
             double fracValue = 0;
             for(int i = 0; i < fracPart.length(); i++){
                 char c = fracPart.charAt(i);
@@ -273,8 +313,8 @@ public class NumberConverter {
         }
     }
 
-    public static String decimalToOctal(String decimal) {
-        try {
+    public static String decimalToOctal(String decimal){
+        try{
             double value = Double.parseDouble(decimal);
             boolean isNegative = value < 0;
             value = Math.abs(value);
@@ -296,7 +336,7 @@ public class NumberConverter {
             if (fracPart > 0){
                 octal.append(".");
                 int precision = 15;
-                while (fracPart > 0 && precision-- > 0) {
+                while (fracPart > 0 && precision-- > 0){
                     fracPart *= 8;
                     octal.append((int) fracPart);
                     fracPart -= (int) fracPart;
@@ -318,11 +358,20 @@ public class NumberConverter {
             String intPart = dotIndex >= 0 ? octal.substring(0, dotIndex) : octal;
             String fracPart = dotIndex >= 0 ? octal.substring(dotIndex + 1) : "";
             long intValue = 0;
+            long maxValueBeforeNeg = isNegative ? -MIN_INT_32 : MAX_INT_32;
             for(int i = 0; i < intPart.length(); i++){
                 char c = intPart.charAt(i);
                 if (c < '0' || c > '7') return "Error";
-                intValue = intValue * 8 + (c - '0');
+                int digit = c - '0';
+                if (intValue > (maxValueBeforeNeg - digit) / 8){
+                    return "Error";
+                }
+                intValue = intValue * 8 + digit;
             }
+            if(!isWithinInt32Range(isNegative ? -intValue : intValue)){
+                return "Error";
+            }
+            
             double fracValue = 0;
             for (int i = 0; i < fracPart.length(); i++) {
                 char c = fracPart.charAt(i);
@@ -333,6 +382,45 @@ public class NumberConverter {
             double result = intValue + fracValue;
             return isNegative ? "-" + String.valueOf(result) : String.valueOf(result);
         }
+        catch (Exception e){
+            return "Error";
+        }
+    }
+
+    public static String decimalToTwosComplement(String decimal){
+        try{
+            double doubleValue = Double.parseDouble(decimal);
+            if(!isWithinInt32Range(doubleValue)){
+                return "Error";
+            }
+            
+            int value = (int) doubleValue;
+            if (value >= 0) {
+                String binary = Integer.toBinaryString(value);
+                return String.format("%32s", binary).replace(' ', '0');
+            } 
+            else{
+                return Integer.toBinaryString(value);
+            }
+        } 
+        catch (NumberFormatException e){
+            return "Error";
+        }
+    }
+
+    public static String twosComplementToDecimal(String twosComp){
+        try {
+            twosComp = twosComp.trim().replaceAll("\\s", "");
+            if (twosComp.isEmpty()) return "Error";
+            if (twosComp.length() < 32) {
+                char signBit = twosComp.length() > 0 ? twosComp.charAt(0) : '0';
+                twosComp = String.format("%32s", twosComp).replace(' ', signBit);
+            } else if (twosComp.length() > 32) {
+                twosComp = twosComp.substring(twosComp.length() - 32);
+            }
+            int value = (int) Long.parseLong(twosComp, 2);
+            return String.valueOf(value);
+        } 
         catch (Exception e){
             return "Error";
         }

@@ -71,12 +71,12 @@ public class CalculatorFragment extends Fragment {
         String operation = spinnerOperation.getSelectedItem().toString();
         String base = spinnerBase.getSelectedItem().toString();
 
-        if (input1Str.isEmpty() || input2Str.isEmpty()){
+        if(input1Str.isEmpty() || input2Str.isEmpty()){
             tvResult.setText("Please enter both numbers");
             return;
         }
 
-        try {
+        try{
             double num1 = convertToDecimal(input1Str, base);
             double num2 = convertToDecimal(input2Str, base);
             
@@ -84,33 +84,44 @@ public class CalculatorFragment extends Fragment {
                 tvResult.setText("Invalid input for selected base");
                 return;
             }
-
+            
             double result = calculateResult(num1, num2, operation);
             if(Double.isNaN(result)){
-                return; 
+                return;
             }
+            
             String resultStr = convertFromDecimal(result, base);
             tvResult.setText("Result: " + resultStr);
             
-        } catch (Exception e) {
+        } 
+        catch (Exception e){
             tvResult.setText("Error: " + e.getMessage());
         }
+    }
+    
+    private boolean isWithinInt32Range(double value) {
+        return value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE && 
+               value == (long) value; // Must be a whole number
     }
 
     private double calculateResult(double num1, double num2, String operation){
         switch(operation){
             case "Add (+)":
-                return num1 + num2;
+                double sum = num1 + num2;
+                return sum;
             case "Subtract (-)":
-                return num1 - num2;
+                double diff = num1 - num2;
+                return diff;
             case "Multiply (×)":
-                return num1 * num2;
+                double product = num1 * num2;
+                return product;
             case "Divide (÷)":
                 if (num2 == 0) {
                     tvResult.setText("Cannot divide by zero");
                     return Double.NaN;
                 }
-                return num1 / num2;
+                double quotient = num1 / num2;
+                return quotient;
             default:
                 tvResult.setText("Unknown operation");
                 return Double.NaN;
@@ -119,24 +130,34 @@ public class CalculatorFragment extends Fragment {
 
     private double convertToDecimal(String value, String base){
         try{
+            String decimalStr;
             switch (base) {
                 case "Decimal":
                     return Double.parseDouble(value);
                 case "Binary":
-                    String dec = NumberConverter.binaryToDecimal(value);
-                    if(dec.equals("Error")) return Double.NaN;
-                    return Double.parseDouble(dec);
+                    decimalStr = NumberConverter.binaryToDecimal(value);
+                    break;
                 case "Hexadecimal":
-                    String decHex = NumberConverter.hexToDecimal(value);
-                    if(decHex.equals("Error")) return Double.NaN;
-                    return Double.parseDouble(decHex);
+                    decimalStr = NumberConverter.hexToDecimal(value);
+                    break;
                 case "Octal":
-                    String decOct = NumberConverter.octalToDecimal(value);
-                    if(decOct.equals("Error")) return Double.NaN;
-                    return Double.parseDouble(decOct);
+                    decimalStr = NumberConverter.octalToDecimal(value);
+                    break;
+                case "IEEE 754":
+                    decimalStr = NumberConverter.ieee754ToDecimal(value);
+                    if(decimalStr.equals("NaN") || decimalStr.equals("Infinity") || 
+                       decimalStr.equals("-Infinity")){
+                        return Double.NaN;
+                    }
+                    break;
                 default:
                     return Double.NaN;
             }
+            
+            if(decimalStr.equals("Error")) {
+                return Double.NaN;
+            }
+            return Double.parseDouble(decimalStr);
         } catch (Exception e) {
             return Double.NaN;
         }
@@ -156,6 +177,9 @@ public class CalculatorFragment extends Fragment {
             case "Octal":
                 String octal = NumberConverter.decimalToOctal(decimalStr);
                 return octal.equals("Error") ? decimalStr : octal;
+            case "IEEE 754":
+                String ieee754 = NumberConverter.decimalToIEEE754(decimalStr);
+                return ieee754.equals("Error") ? decimalStr : ieee754;
             default:
                 return decimalStr;
         }
